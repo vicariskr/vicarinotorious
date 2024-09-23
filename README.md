@@ -1,3 +1,4 @@
 - 👋 Olá, me chamo Gabriel Vicari;
 - 🌱 Atualmente estudando Engenharia da Computação;
+- 🇧🇷 Cb do Exército
 - 📫 Discord: Vicari#8689;
