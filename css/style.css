@@ -1,0 +1,156 @@
+/* Weather App Styles */
+
+.weatherSearchBox {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.weatherSearchBox .sapMInput,
+.weatherSearchBox .sapMBtn {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.weatherSearchBox .sapMLabel {
+    color: white;
+    font-weight: 500;
+}
+
+.weatherHelpText {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.875rem;
+}
+
+.weatherPanel {
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+.weatherPanel .sapMPanelHdr {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border-radius: 12px 12px 0 0;
+}
+
+.weatherCityTitle {
+    color: #1873B4;
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.weatherTemp {
+    color: #1873B4;
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.weatherDescription {
+    color: #666;
+    font-size: 1.2rem;
+    text-transform: capitalize;
+    margin-top: 0.5rem;
+}
+
+.weatherDetailsGrid {
+    width: 100%;
+    max-width: 600px;
+    margin: 1.5rem auto 0;
+}
+
+.weatherDetailBox {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 0.5rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.weatherDetailBox .sapMLabel {
+    color: #666;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.weatherDetailBox .sapMText {
+    color: #1873B4;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.forecastItem {
+    border-bottom: 1px solid #e0e0e0;
+    padding: 1rem;
+    transition: background-color 0.2s;
+}
+
+.forecastItem:hover {
+    background-color: #f8f9fa;
+}
+
+.forecastDate {
+    font-weight: 600;
+    color: #1873B4;
+    font-size: 1rem;
+}
+
+.forecastDay {
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.forecastDescription {
+    color: #333;
+    text-transform: capitalize;
+    font-size: 0.95rem;
+}
+
+.forecastTemp {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1873B4;
+}
+
+.forecastMinMax {
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.weatherLastUpdate {
+    color: #999;
+    font-size: 0.875rem;
+    font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .weatherTemp {
+        font-size: 2.5rem;
+    }
+    
+    .weatherCityTitle {
+        font-size: 1.5rem;
+    }
+    
+    .weatherSearchBox {
+        padding: 1rem;
+    }
+}
+
+/* Loading state */
+.sapUiBlockLayerTouched {
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+/* Message Strip styling */
+.sapMMsgStrip {
+    border-radius: 8px;
+}
