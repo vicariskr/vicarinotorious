@@ -1,0 +1,11 @@
+# Respostas
+
+## Teste sobre POO Avançado
+
+**Pergunta 1:** Opção A - Polimorfismo
+
+**Pergunta 2:** Opção E
+
+**Pergunta 3:** Opção D - Encapsulamento
+
+**Pergunta 4:** Qualquer alternativa (questão anulada)
