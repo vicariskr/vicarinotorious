@@ -4,8 +4,9 @@
  * Tabela Direita (Dia 2): Colunas G:K
  * Resultado: Aba "Resultado"
  * Cadastro de UGs: Aba "UGs" (UG, Nome, Abreviação)
+ * Mensagens: Aba "Mensagens" (cobranças para UGs com entesouramento)
  * 
- * Versão 4.0 - Com abreviações das UGs e formatação profissional
+ * Versão 5.0 - Com geração de mensagens de cobrança
  */
 
 /**
@@ -316,6 +317,256 @@ function compararSaldos() {
     "📋 Total de registros: " + totalRegistros + "\n\n" +
     "Resultados salvos na aba 'Resultado'."
   );
+}
+
+/**
+ * Gera mensagens de cobrança para UGs com entesouramento
+ * (saldos que permanecem iguais ou aumentaram)
+ */
+function gerarMensagensCobranca() {
+  var planilha = SpreadsheetApp.getActiveSpreadsheet();
+  var abaResultado = planilha.getSheetByName("Resultado");
+  
+  if (!abaResultado) {
+    SpreadsheetApp.getUi().alert("⚠️ Execute primeiro a comparação de saldos!");
+    return;
+  }
+  
+  // Carregar dados das UGs
+  var dadosUGs = carregarDadosUGs();
+  
+  // Ler dados do resultado
+  var dados = abaResultado.getDataRange().getValues();
+  
+  // Filtrar saldos com entesouramento (permanece igual ou aumentou)
+  var entesouramentoPorUG = {};
+  
+  for (var i = 0; i < dados.length; i++) {
+    var linha = dados[i];
+    var status = linha[7];
+    
+    // Verificar se é uma linha de dados com entesouramento
+    if (status === "Permanece igual" || status === "Aumentou") {
+      var ugExecutora = String(linha[0]).trim();
+      var contaContabil = String(linha[1]).trim();
+      var contaCorrente = String(linha[2]).trim();
+      var vinculacao = String(linha[3]).trim();
+      var saldoDia2 = linha[5]; // Saldo atual (Dia 2)
+      
+      if (!entesouramentoPorUG[ugExecutora]) {
+        entesouramentoPorUG[ugExecutora] = [];
+      }
+      
+      entesouramentoPorUG[ugExecutora].push({
+        contaContabil: contaContabil,
+        contaCorrente: contaCorrente,
+        vinculacao: vinculacao,
+        saldo: saldoDia2,
+        status: status
+      });
+    }
+  }
+  
+  var ugsComEntesouramento = Object.keys(entesouramentoPorUG).sort();
+  
+  if (ugsComEntesouramento.length === 0) {
+    SpreadsheetApp.getUi().alert("✅ Nenhuma UG com entesouramento encontrada!\n\nTodas as UGs regularizaram seus saldos.");
+    return;
+  }
+  
+  // Criar ou limpar aba "Mensagens"
+  var abaMensagens = planilha.getSheetByName("Mensagens");
+  if (!abaMensagens) {
+    abaMensagens = planilha.insertSheet("Mensagens");
+  } else {
+    abaMensagens.clear();
+    abaMensagens.clearFormats();
+  }
+  
+  // Data atual
+  var dataAtual = new Date();
+  var diaAtual = String(dataAtual.getDate()).padStart(2, '0');
+  var meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
+               "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  var mesAtual = meses[dataAtual.getMonth()];
+  var anoAtual = dataAtual.getFullYear();
+  var dataFormatada = diaAtual + " de " + mesAtual + " de " + anoAtual;
+  
+  // Configurar largura da coluna
+  abaMensagens.setColumnWidth(1, 800);
+  
+  var linhaAtual = 1;
+  var numeroMensagem = 1;
+  
+  // Título da aba
+  abaMensagens.getRange(linhaAtual, 1).setValue("MENSAGENS DE COBRANÇA - ENTESOURAMENTO");
+  abaMensagens.getRange(linhaAtual, 1).setFontSize(16);
+  abaMensagens.getRange(linhaAtual, 1).setFontWeight("bold");
+  abaMensagens.getRange(linhaAtual, 1).setBackground("#1a237e");
+  abaMensagens.getRange(linhaAtual, 1).setFontColor("#ffffff");
+  abaMensagens.getRange(linhaAtual, 1).setHorizontalAlignment("center");
+  linhaAtual++;
+  
+  abaMensagens.getRange(linhaAtual, 1).setValue("Gerado em: " + formatarData(new Date()) + " | Total de UGs: " + ugsComEntesouramento.length);
+  abaMensagens.getRange(linhaAtual, 1).setFontSize(10);
+  abaMensagens.getRange(linhaAtual, 1).setFontStyle("italic");
+  abaMensagens.getRange(linhaAtual, 1).setBackground("#283593");
+  abaMensagens.getRange(linhaAtual, 1).setFontColor("#ffffff");
+  abaMensagens.getRange(linhaAtual, 1).setHorizontalAlignment("center");
+  linhaAtual++;
+  
+  linhaAtual++; // Linha em branco
+  
+  // Gerar mensagem para cada UG
+  for (var u = 0; u < ugsComEntesouramento.length; u++) {
+    var ug = ugsComEntesouramento[u];
+    var registros = entesouramentoPorUG[ug];
+    var infoUG = dadosUGs[ug] || {nome: "Não cadastrada", abreviacao: ug};
+    
+    // Agrupar por conta contábil
+    var porContaContabil = {};
+    for (var r = 0; r < registros.length; r++) {
+      var reg = registros[r];
+      if (!porContaContabil[reg.contaContabil]) {
+        porContaContabil[reg.contaContabil] = [];
+      }
+      porContaContabil[reg.contaContabil].push(reg);
+    }
+    
+    // Cabeçalho da UG
+    abaMensagens.getRange(linhaAtual, 1).setValue("═══════════════════════════════════════════════════════════════════════════════");
+    abaMensagens.getRange(linhaAtual, 1).setFontFamily("Courier New");
+    linhaAtual++;
+    
+    abaMensagens.getRange(linhaAtual, 1).setValue("UG " + ug + " - " + infoUG.abreviacao);
+    abaMensagens.getRange(linhaAtual, 1).setFontWeight("bold");
+    abaMensagens.getRange(linhaAtual, 1).setFontSize(12);
+    abaMensagens.getRange(linhaAtual, 1).setBackground("#37474f");
+    abaMensagens.getRange(linhaAtual, 1).setFontColor("#ffffff");
+    linhaAtual++;
+    
+    abaMensagens.getRange(linhaAtual, 1).setValue("═══════════════════════════════════════════════════════════════════════════════");
+    abaMensagens.getRange(linhaAtual, 1).setFontFamily("Courier New");
+    linhaAtual++;
+    
+    linhaAtual++; // Espaço
+    
+    // Montar mensagem
+    var mensagem = "";
+    
+    // Assunto
+    mensagem += "Assunto: " + infoUG.abreviacao + " - Entesouramento - Urgente\n\n";
+    
+    // Cabeçalho da mensagem
+    mensagem += "Msg Nr " + String(numeroMensagem).padStart(3, '0') + " - S CONT " + ug + "\n\n";
+    
+    mensagem += "Ao Sr OD " + infoUG.abreviacao + "\n\n";
+    
+    mensagem += "Rfr: Caderno de Orientação aos Agentes da Administração - Gestão dos Recursos Financeiros\n\n\n";
+    
+    // Parágrafo 1
+    mensagem += "1. Após análise realizada no balancete, em " + dataFormatada + ", foi verificado que essa UGA apresenta saldos nas contas contábeis Limite de Saque com Vinculação de Pagamento, conforme discriminado abaixo:\n\n";
+    
+    // Para cada conta contábil
+    for (var contaContabil in porContaContabil) {
+      var registrosConta = porContaContabil[contaContabil];
+      
+      // Nome da conta contábil
+      var nomeContaContabil = obterNomeContaContabil(contaContabil);
+      mensagem += "\n   CONTA CONTÁBIL: " + contaContabil + " - " + nomeContaContabil + "\n\n";
+      
+      // Cabeçalho da tabela
+      mensagem += "        UG          FONTE/VINCULAÇÃO              VALOR R$\n";
+      mensagem += "   ─────────────────────────────────────────────────────────────\n";
+      
+      // Dados
+      var totalConta = 0;
+      for (var c = 0; c < registrosConta.length; c++) {
+        var item = registrosConta[c];
+        var valorFormatado = formatarMoeda(item.saldo);
+        mensagem += "      " + ug + "       " + item.contaCorrente + "         " + valorFormatado + "\n";
+        totalConta += converterParaNumero(item.saldo);
+      }
+      
+      // Total da conta
+      if (registrosConta.length > 1) {
+        mensagem += "   ─────────────────────────────────────────────────────────────\n";
+        mensagem += "      TOTAL:                                      " + formatarMoeda(totalConta) + "\n";
+      }
+    }
+    
+    mensagem += "\n\n";
+    
+    // Parágrafo 2
+    mensagem += "2. Diante do exposto, solicito realizar a regularização pertinente, e informar este Centro até " + dataFormatada + ", as justificativas dos saldos em tela por mais de 24 horas.\n\n\n";
+    
+    // Assinatura
+    mensagem += "      Curitiba, " + dataFormatada + "\n\n";
+    mensagem += "                    ALÉQUIS SANDER DA SILVA CORRÊA - CEL\n";
+    mensagem += "                              Chefe do 5º CGCFEx\n";
+    
+    // Escrever mensagem na célula
+    abaMensagens.getRange(linhaAtual, 1).setValue(mensagem);
+    abaMensagens.getRange(linhaAtual, 1).setFontFamily("Courier New");
+    abaMensagens.getRange(linhaAtual, 1).setFontSize(10);
+    abaMensagens.getRange(linhaAtual, 1).setVerticalAlignment("top");
+    abaMensagens.getRange(linhaAtual, 1).setWrap(true);
+    abaMensagens.getRange(linhaAtual, 1).setBorder(true, true, true, true, false, false, "#000000", SpreadsheetApp.BorderStyle.SOLID);
+    abaMensagens.getRange(linhaAtual, 1).setBackground("#fffde7");
+    
+    // Ajustar altura da linha baseado no conteúdo
+    var numLinhasMensagem = mensagem.split('\n').length;
+    abaMensagens.setRowHeight(linhaAtual, Math.max(numLinhasMensagem * 14, 400));
+    
+    linhaAtual++;
+    linhaAtual++; // Espaço entre mensagens
+    linhaAtual++;
+    
+    numeroMensagem++;
+  }
+  
+  // Resumo no final
+  linhaAtual++;
+  abaMensagens.getRange(linhaAtual, 1).setValue("═══════════════════════════════════════════════════════════════════════════════");
+  abaMensagens.getRange(linhaAtual, 1).setFontFamily("Courier New");
+  linhaAtual++;
+  
+  abaMensagens.getRange(linhaAtual, 1).setValue("RESUMO: " + ugsComEntesouramento.length + " UGs com entesouramento identificadas");
+  abaMensagens.getRange(linhaAtual, 1).setFontWeight("bold");
+  abaMensagens.getRange(linhaAtual, 1).setFontSize(12);
+  abaMensagens.getRange(linhaAtual, 1).setBackground("#1a237e");
+  abaMensagens.getRange(linhaAtual, 1).setFontColor("#ffffff");
+  abaMensagens.getRange(linhaAtual, 1).setHorizontalAlignment("center");
+  
+  SpreadsheetApp.getUi().alert(
+    "✅ Mensagens geradas com sucesso!\n\n" +
+    "📧 Total de mensagens: " + ugsComEntesouramento.length + "\n\n" +
+    "As mensagens estão na aba 'Mensagens'.\n" +
+    "Basta copiar e colar para enviar!"
+  );
+}
+
+/**
+ * Retorna o nome da conta contábil baseado no código
+ */
+function obterNomeContaContabil(codigo) {
+  var nomes = {
+    "111122001": "LIMITE DE SAQUE COM VINCULAÇÃO DE PGTO - OFSS",
+    "111122003": "LIMITE DE SAQUE COM VINCULAÇÃO DE PGTO - OUTRAS VINCULAÇÕES"
+  };
+  
+  return nomes[codigo] || "LIMITE DE SAQUE COM VINCULAÇÃO DE PAGAMENTO";
+}
+
+/**
+ * Formata valor como moeda brasileira
+ */
+function formatarMoeda(valor) {
+  var numero = converterParaNumero(valor);
+  return numero.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 }
 
 /**
@@ -682,6 +933,8 @@ function onOpen() {
   ui.createMenu("📊 Comparar Saldos")
     .addItem("🔄 Comparar Tabelas", "compararSaldos")
     .addItem("✅ Filtrar Saldos Permanentes", "filtrarSaldosPermanentes")
+    .addSeparator()
+    .addItem("📧 Gerar Mensagens de Cobrança", "gerarMensagensCobranca")
     .addSeparator()
     .addItem("📋 Criar/Atualizar Cadastro de UGs", "criarAbaUGs")
     .addItem("🗑️ Limpar Resultado", "limparResultado")
