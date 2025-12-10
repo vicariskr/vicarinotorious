@@ -3,8 +3,9 @@
  * Tabela Esquerda (Dia 1): Colunas A:E
  * Tabela Direita (Dia 2): Colunas G:K
  * Resultado: Aba "Resultado"
+ * Cadastro de UGs: Aba "UGs"
  * 
- * Versão 2.0 - Com formatação profissional e separação por UG Executora
+ * Versão 3.0 - Com nomes das UGs e formatação profissional
  */
 
 /**
@@ -16,9 +17,12 @@ function compararSaldos() {
   var abaDados = planilha.getSheetByName("Dados");
   
   if (!abaDados) {
-    SpreadsheetApp.getUi().alert("Erro: Aba 'Dados' não encontrada!");
+    SpreadsheetApp.getUi().alert("❌ Erro: Aba 'Dados' não encontrada!");
     return;
   }
+  
+  // Carregar nomes das UGs
+  var nomesUGs = carregarNomesUGs();
   
   // Criar ou limpar aba "Resultado" ANTES de tudo
   var abaResultado = planilha.getSheetByName("Resultado");
@@ -27,7 +31,6 @@ function compararSaldos() {
   } else {
     abaResultado.clear();
     abaResultado.clearFormats();
-    // Remover todas as formatações condicionais
     abaResultado.clearConditionalFormatRules();
   }
   
@@ -176,6 +179,9 @@ function compararSaldos() {
     var ug = ugsOrdenadas[u];
     var registrosUG = resultadosPorUG[ug];
     
+    // Obter nome da UG
+    var nomeUG = nomesUGs[ug] || "Nome não cadastrado";
+    
     // Calcular totais da UG
     var totalDia1UG = 0;
     var totalDia2UG = 0;
@@ -184,9 +190,9 @@ function compararSaldos() {
       totalDia2UG += registrosUG[t].saldoDia2;
     }
     
-    // Cabeçalho da UG
+    // Cabeçalho da UG com nome
     abaResultado.getRange(linhaAtual, 1, 1, numColunas).merge();
-    abaResultado.getRange(linhaAtual, 1).setValue("UG EXECUTORA: " + ug);
+    abaResultado.getRange(linhaAtual, 1).setValue("UG " + ug + " - " + nomeUG);
     formatarCabecalhoUG(abaResultado, linhaAtual, numColunas);
     linhaAtual++;
     
@@ -233,11 +239,11 @@ function compararSaldos() {
     
     // Linha de subtotal da UG
     abaResultado.getRange(linhaAtual, 1, 1, 4).merge();
-    abaResultado.getRange(linhaAtual, 1).setValue("SUBTOTAL " + ug);
+    abaResultado.getRange(linhaAtual, 1).setValue("SUBTOTAL - " + nomeUG);
     abaResultado.getRange(linhaAtual, 5).setValue(totalDia1UG);
     abaResultado.getRange(linhaAtual, 6).setValue(totalDia2UG);
     abaResultado.getRange(linhaAtual, 7).setValue(totalDia2UG - totalDia1UG);
-    abaResultado.getRange(linhaAtual, 8).setValue(registrosUG.length + " registros");
+    abaResultado.getRange(linhaAtual, 8).setValue(registrosUG.length + " reg.");
     formatarSubtotal(abaResultado, linhaAtual, numColunas);
     linhaAtual++;
     
@@ -309,6 +315,168 @@ function compararSaldos() {
     "📊 Total de UGs: " + ugsOrdenadas.length + "\n" +
     "📋 Total de registros: " + totalRegistros + "\n\n" +
     "Resultados salvos na aba 'Resultado'."
+  );
+}
+
+/**
+ * Carrega os nomes das UGs da aba "UGs"
+ * Retorna um objeto {codigo: nome}
+ */
+function carregarNomesUGs() {
+  var planilha = SpreadsheetApp.getActiveSpreadsheet();
+  var abaUGs = planilha.getSheetByName("UGs");
+  var nomesUGs = {};
+  
+  if (!abaUGs) {
+    // Se a aba não existe, retorna vazio
+    return nomesUGs;
+  }
+  
+  var ultimaLinha = obterUltimaLinhaColuna(abaUGs, 1);
+  if (ultimaLinha < 2) return nomesUGs;
+  
+  var dados = abaUGs.getRange(2, 1, ultimaLinha - 1, 2).getValues();
+  
+  for (var i = 0; i < dados.length; i++) {
+    var codigo = String(dados[i][0]).trim();
+    var nome = String(dados[i][1]).trim();
+    
+    if (codigo !== "" && codigo !== "undefined") {
+      nomesUGs[codigo] = nome;
+    }
+  }
+  
+  return nomesUGs;
+}
+
+/**
+ * Cria a aba "UGs" com os dados iniciais do cadastro
+ */
+function criarAbaUGs() {
+  var planilha = SpreadsheetApp.getActiveSpreadsheet();
+  var abaUGs = planilha.getSheetByName("UGs");
+  
+  if (abaUGs) {
+    var resposta = SpreadsheetApp.getUi().alert(
+      "⚠️ Atenção",
+      "A aba 'UGs' já existe. Deseja substituir os dados?",
+      SpreadsheetApp.getUi().ButtonSet.YES_NO
+    );
+    
+    if (resposta !== SpreadsheetApp.getUi().Button.YES) {
+      return;
+    }
+    abaUGs.clear();
+    abaUGs.clearFormats();
+  } else {
+    abaUGs = planilha.insertSheet("UGs");
+  }
+  
+  // Dados das UGs
+  var dadosUGs = [
+    ["UG", "NOME"],
+    ["160018", "12º Batalhão de Suprimento"],
+    ["160038", "6º Depósito de Suprimento"],
+    ["160049", "10º Depósito de Suprimento"],
+    ["160052", "1º Regimento de Cavalaria de Guarda-Mex/DF"],
+    ["160072", "11º Depósito de Suprimento"],
+    ["160077", "Unidade não identificada"],
+    ["160120", "4º Depósito de Suprimento"],
+    ["160142", "9º Batalhão de Suprimento"],
+    ["160192", "Base de Administração e Apoio da 5ª RM"],
+    ["160198", "7º Depósito de Suprimento"],
+    ["160204", "25º Batalhão de Caçadores do Exército Brasileiro"],
+    ["160206", "30º Batalhão de Infantaria Mecanizado"],
+    ["160207", "3º Regimento de Carros de Combate"],
+    ["160209", "Comando da 15ª Brigada de Infantaria Mecanizada"],
+    ["160211", "20º Batalhão de Infantaria Blindado"],
+    ["160212", "27º Batalhão Logístico"],
+    ["160213", "5º Batalhão Logístico"],
+    ["160214", "5ª Companhia de Comunicações Blindada"],
+    ["160216", "5º Esquadrão de Cavalaria Mecanizado"],
+    ["160217", "5º Grupo de Artilharia de Campanha"],
+    ["160219", "Comando da 5ª Região Militar"],
+    ["160220", "Comissão Regional de Obras da 5ª RM"],
+    ["160222", "5º Batalhão de Suprimento"],
+    ["160223", "Hospital Geral de Curitiba"],
+    ["160224", "Parque Regional de Manutenção da 5ª Região Militar"],
+    ["160226", "34º Batalhão de Infantaria Mecanizado"],
+    ["160227", "15ª Companhia de Infantaria Motorizada"],
+    ["160228", "26º Grupo de Artilharia de Campanha"],
+    ["160229", "15º Grupo de Artilharia de Campanha Autopropulsado"],
+    ["160230", "15ª Companhia de Engenharia de Combate Mecanizada"],
+    ["160232", "13º Batalhão de Infantaria Blindado"],
+    ["160234", "5º Regimento de Carros de Combate"],
+    ["160238", "Base de Apoio Logístico do Exército"],
+    ["160246", "Depósito Central de Munição - RJ"],
+    ["160249", "Academia Militar das Agulhas Negras"],
+    ["160270", "2º Regimento de Cavalaria de Guardas"],
+    ["160285", "Arsenal de Guerra do Rio/RJ"],
+    ["160304", "Batalhão de Manutenção e Suprimento de Armamento - BMSA"],
+    ["160307", "1º Depósito de Suprimento"],
+    ["160308", "Diretoria de Assuntos Culturais"],
+    ["160329", "Batalhão Central de Manutenção e Suprimento do Exército Brasileiro"],
+    ["160354", "10º Batalhão Logístico"],
+    ["160356", "12º Batalhão de Engenharia de Combate"],
+    ["160368", "3º Batalhão de Suprimento"],
+    ["160378", "16º Esquadrão de Cavalaria Mecanizado"],
+    ["160382", "1º Centro de Geoinformação"],
+    ["160389", "8º Batalhão Logístico"],
+    ["160413", "Base de Administração e Apoio da Guarnição de Santa Maria"],
+    ["160431", "4º Regimento de Cavalaria Blindado"],
+    ["160436", "22º Grupo de Artilharia de Campanha"],
+    ["160440", "23º Batalhão de Infantaria"],
+    ["160441", "28º Grupo de Artilharia de Campanha"],
+    ["160443", "63º Batalhão de Infantaria"],
+    ["160444", "Comando da 14ª Brigada de Infantaria Motorizada"],
+    ["160446", "62º Batalhão de Infantaria"],
+    ["160447", "1º Batalhão Ferroviário"],
+    ["160448", "5º Batalhão de Engenharia de Combate Blindado"],
+    ["160450", "14º Regimento de Cavalaria Mecanizado"],
+    ["160494", "21º Depósito de Suprimento"],
+    ["160512", "20º Regimento de Cavalaria Blindado"],
+    ["160517", "14ª Companhia de Engenharia de Combate"],
+    ["160524", "15º Batalhão Logístico"],
+    ["160986", "33º Batalhão de Infantaria Mecanizado"],
+    ["90019", "JUSTIÇA FEDERAL DE PRIMEIRO GRAU - SC"]
+  ];
+  
+  // Escrever dados
+  abaUGs.getRange(1, 1, dadosUGs.length, 2).setValues(dadosUGs);
+  
+  // Formatar cabeçalho
+  var cabecalhoRange = abaUGs.getRange(1, 1, 1, 2);
+  cabecalhoRange.setBackground("#1a237e");
+  cabecalhoRange.setFontColor("#ffffff");
+  cabecalhoRange.setFontWeight("bold");
+  cabecalhoRange.setFontSize(11);
+  cabecalhoRange.setHorizontalAlignment("center");
+  cabecalhoRange.setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  
+  // Formatar dados
+  var dadosRange = abaUGs.getRange(2, 1, dadosUGs.length - 1, 2);
+  dadosRange.setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
+  
+  // Aplicar cores alternadas
+  for (var i = 2; i <= dadosUGs.length; i++) {
+    var corFundo = (i % 2 === 0) ? "#ffffff" : "#e8eaf6";
+    abaUGs.getRange(i, 1, 1, 2).setBackground(corFundo);
+  }
+  
+  // Ajustar colunas
+  abaUGs.setColumnWidth(1, 100);
+  abaUGs.setColumnWidth(2, 450);
+  
+  // Centralizar coluna UG
+  abaUGs.getRange(2, 1, dadosUGs.length - 1, 1).setHorizontalAlignment("center");
+  
+  // Congelar cabeçalho
+  abaUGs.setFrozenRows(1);
+  
+  SpreadsheetApp.getUi().alert(
+    "✅ Aba 'UGs' criada com sucesso!\n\n" +
+    "📋 Total de UGs cadastradas: " + (dadosUGs.length - 1) + "\n\n" +
+    "Você pode adicionar, editar ou remover UGs diretamente na aba."
   );
 }
 
@@ -533,6 +701,7 @@ function onOpen() {
     .addItem("🔄 Comparar Tabelas", "compararSaldos")
     .addItem("✅ Filtrar Saldos Permanentes", "filtrarSaldosPermanentes")
     .addSeparator()
+    .addItem("📋 Criar/Atualizar Cadastro de UGs", "criarAbaUGs")
     .addItem("🗑️ Limpar Resultado", "limparResultado")
     .addToUi();
 }
