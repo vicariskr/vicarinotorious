@@ -3,9 +3,9 @@
  * Tabela Esquerda (Dia 1): Colunas A:E
  * Tabela Direita (Dia 2): Colunas G:K
  * Resultado: Aba "Resultado"
- * Cadastro de UGs: Aba "UGs"
+ * Cadastro de UGs: Aba "UGs" (UG, Nome, Abreviação)
  * 
- * Versão 3.0 - Com nomes das UGs e formatação profissional
+ * Versão 4.0 - Com abreviações das UGs e formatação profissional
  */
 
 /**
@@ -21,8 +21,8 @@ function compararSaldos() {
     return;
   }
   
-  // Carregar nomes das UGs
-  var nomesUGs = carregarNomesUGs();
+  // Carregar dados das UGs (código, nome, abreviação)
+  var dadosUGs = carregarDadosUGs();
   
   // Criar ou limpar aba "Resultado" ANTES de tudo
   var abaResultado = planilha.getSheetByName("Resultado");
@@ -179,8 +179,8 @@ function compararSaldos() {
     var ug = ugsOrdenadas[u];
     var registrosUG = resultadosPorUG[ug];
     
-    // Obter nome da UG
-    var nomeUG = nomesUGs[ug] || "Nome não cadastrado";
+    // Obter dados da UG (nome e abreviação)
+    var infoUG = dadosUGs[ug] || {nome: "Não cadastrada", abreviacao: "N/C"};
     
     // Calcular totais da UG
     var totalDia1UG = 0;
@@ -190,9 +190,9 @@ function compararSaldos() {
       totalDia2UG += registrosUG[t].saldoDia2;
     }
     
-    // Cabeçalho da UG com nome
+    // Cabeçalho da UG com nome completo e abreviação
     abaResultado.getRange(linhaAtual, 1, 1, numColunas).merge();
-    abaResultado.getRange(linhaAtual, 1).setValue("UG " + ug + " - " + nomeUG);
+    abaResultado.getRange(linhaAtual, 1).setValue("UG " + ug + " - " + infoUG.nome + " (" + infoUG.abreviacao + ")");
     formatarCabecalhoUG(abaResultado, linhaAtual, numColunas);
     linhaAtual++;
     
@@ -237,9 +237,9 @@ function compararSaldos() {
     // Formatar dados do grupo
     formatarDadosGrupo(abaResultado, linhaInicioGrupo, linhaFimGrupo, numColunas);
     
-    // Linha de subtotal da UG
+    // Linha de subtotal da UG (usando abreviação)
     abaResultado.getRange(linhaAtual, 1, 1, 4).merge();
-    abaResultado.getRange(linhaAtual, 1).setValue("SUBTOTAL - " + nomeUG);
+    abaResultado.getRange(linhaAtual, 1).setValue("SUBTOTAL " + infoUG.abreviacao);
     abaResultado.getRange(linhaAtual, 5).setValue(totalDia1UG);
     abaResultado.getRange(linhaAtual, 6).setValue(totalDia2UG);
     abaResultado.getRange(linhaAtual, 7).setValue(totalDia2UG - totalDia1UG);
@@ -319,34 +319,37 @@ function compararSaldos() {
 }
 
 /**
- * Carrega os nomes das UGs da aba "UGs"
- * Retorna um objeto {codigo: nome}
+ * Carrega os dados das UGs da aba "UGs"
+ * Retorna um objeto {codigo: {nome, abreviacao}}
  */
-function carregarNomesUGs() {
+function carregarDadosUGs() {
   var planilha = SpreadsheetApp.getActiveSpreadsheet();
   var abaUGs = planilha.getSheetByName("UGs");
-  var nomesUGs = {};
+  var dadosUGs = {};
   
   if (!abaUGs) {
-    // Se a aba não existe, retorna vazio
-    return nomesUGs;
+    return dadosUGs;
   }
   
   var ultimaLinha = obterUltimaLinhaColuna(abaUGs, 1);
-  if (ultimaLinha < 2) return nomesUGs;
+  if (ultimaLinha < 2) return dadosUGs;
   
-  var dados = abaUGs.getRange(2, 1, ultimaLinha - 1, 2).getValues();
+  var dados = abaUGs.getRange(2, 1, ultimaLinha - 1, 3).getValues();
   
   for (var i = 0; i < dados.length; i++) {
     var codigo = String(dados[i][0]).trim();
     var nome = String(dados[i][1]).trim();
+    var abreviacao = String(dados[i][2]).trim();
     
     if (codigo !== "" && codigo !== "undefined") {
-      nomesUGs[codigo] = nome;
+      dadosUGs[codigo] = {
+        nome: nome || "Sem nome",
+        abreviacao: abreviacao || codigo
+      };
     }
   }
   
-  return nomesUGs;
+  return dadosUGs;
 }
 
 /**
@@ -372,80 +375,53 @@ function criarAbaUGs() {
     abaUGs = planilha.insertSheet("UGs");
   }
   
-  // Dados das UGs
+  // Dados das UGs com Nome e Abreviação
   var dadosUGs = [
-    ["UG", "NOME"],
-    ["160018", "12º Batalhão de Suprimento"],
-    ["160038", "6º Depósito de Suprimento"],
-    ["160049", "10º Depósito de Suprimento"],
-    ["160052", "1º Regimento de Cavalaria de Guarda-Mex/DF"],
-    ["160072", "11º Depósito de Suprimento"],
-    ["160077", "Unidade não identificada"],
-    ["160120", "4º Depósito de Suprimento"],
-    ["160142", "9º Batalhão de Suprimento"],
-    ["160192", "Base de Administração e Apoio da 5ª RM"],
-    ["160198", "7º Depósito de Suprimento"],
-    ["160204", "25º Batalhão de Caçadores do Exército Brasileiro"],
-    ["160206", "30º Batalhão de Infantaria Mecanizado"],
-    ["160207", "3º Regimento de Carros de Combate"],
-    ["160209", "Comando da 15ª Brigada de Infantaria Mecanizada"],
-    ["160211", "20º Batalhão de Infantaria Blindado"],
-    ["160212", "27º Batalhão Logístico"],
-    ["160213", "5º Batalhão Logístico"],
-    ["160214", "5ª Companhia de Comunicações Blindada"],
-    ["160216", "5º Esquadrão de Cavalaria Mecanizado"],
-    ["160217", "5º Grupo de Artilharia de Campanha"],
-    ["160219", "Comando da 5ª Região Militar"],
-    ["160220", "Comissão Regional de Obras da 5ª RM"],
-    ["160222", "5º Batalhão de Suprimento"],
-    ["160223", "Hospital Geral de Curitiba"],
-    ["160224", "Parque Regional de Manutenção da 5ª Região Militar"],
-    ["160226", "34º Batalhão de Infantaria Mecanizado"],
-    ["160227", "15ª Companhia de Infantaria Motorizada"],
-    ["160228", "26º Grupo de Artilharia de Campanha"],
-    ["160229", "15º Grupo de Artilharia de Campanha Autopropulsado"],
-    ["160230", "15ª Companhia de Engenharia de Combate Mecanizada"],
-    ["160232", "13º Batalhão de Infantaria Blindado"],
-    ["160234", "5º Regimento de Carros de Combate"],
-    ["160238", "Base de Apoio Logístico do Exército"],
-    ["160246", "Depósito Central de Munição - RJ"],
-    ["160249", "Academia Militar das Agulhas Negras"],
-    ["160270", "2º Regimento de Cavalaria de Guardas"],
-    ["160285", "Arsenal de Guerra do Rio/RJ"],
-    ["160304", "Batalhão de Manutenção e Suprimento de Armamento - BMSA"],
-    ["160307", "1º Depósito de Suprimento"],
-    ["160308", "Diretoria de Assuntos Culturais"],
-    ["160329", "Batalhão Central de Manutenção e Suprimento do Exército Brasileiro"],
-    ["160354", "10º Batalhão Logístico"],
-    ["160356", "12º Batalhão de Engenharia de Combate"],
-    ["160368", "3º Batalhão de Suprimento"],
-    ["160378", "16º Esquadrão de Cavalaria Mecanizado"],
-    ["160382", "1º Centro de Geoinformação"],
-    ["160389", "8º Batalhão Logístico"],
-    ["160413", "Base de Administração e Apoio da Guarnição de Santa Maria"],
-    ["160431", "4º Regimento de Cavalaria Blindado"],
-    ["160436", "22º Grupo de Artilharia de Campanha"],
-    ["160440", "23º Batalhão de Infantaria"],
-    ["160441", "28º Grupo de Artilharia de Campanha"],
-    ["160443", "63º Batalhão de Infantaria"],
-    ["160444", "Comando da 14ª Brigada de Infantaria Motorizada"],
-    ["160446", "62º Batalhão de Infantaria"],
-    ["160447", "1º Batalhão Ferroviário"],
-    ["160448", "5º Batalhão de Engenharia de Combate Blindado"],
-    ["160450", "14º Regimento de Cavalaria Mecanizado"],
-    ["160494", "21º Depósito de Suprimento"],
-    ["160512", "20º Regimento de Cavalaria Blindado"],
-    ["160517", "14ª Companhia de Engenharia de Combate"],
-    ["160524", "15º Batalhão Logístico"],
-    ["160986", "33º Batalhão de Infantaria Mecanizado"],
-    ["90019", "JUSTIÇA FEDERAL DE PRIMEIRO GRAU - SC"]
+    ["UG", "Nome", "Abreviação"],
+    ["160077", "Colégio Militar de Curitiba", "CMC"],
+    ["160192", "Base de Administração e Apoio da 5ª Região Militar", "B Adm Ap/5RM"],
+    ["160206", "30º Batalhão de Infantaria Mecanizado", "30º BI Mec"],
+    ["160207", "3º Regimento de Carros de Combate", "3º RCC"],
+    ["160209", "Comando da 15ª Brigada de Infantaria Mecanizada", "Cmdo 15ª Bda Inf Mec"],
+    ["160211", "20º Batalhão de Infantaria Blindado", "20º BIB"],
+    ["160212", "27º Batalhão Logístico", "27º B Log"],
+    ["160213", "5º Depósito de Suprimento", "5º D Sup"],
+    ["160216", "5º Esquadrão de Cavalaria Mecanizado", "5º Esqd C Mec"],
+    ["160217", "5º Grupo de Artilharia de Campanha Autopropulsado", "5º GAC AP"],
+    ["160219", "Comando da 5ª Região Militar", "Cmdo 5ª RM"],
+    ["160220", "Centro Regional de Obras 5", "C R Op 5"],
+    ["160222", "5º Batalhão de Suprimento", "5º B Sup"],
+    ["160223", "Hospital Geral de Curitiba", "H Ge C"],
+    ["160224", "Parque Regional de Manutenção da 5ª Região Militar", "Pq R Mnt/5"],
+    ["160227", "15ª Companhia de Infantaria Motorizada", "15ª Cia Inf Mtz"],
+    ["160228", "26º Grupo de Artilharia de Campanha", "26º GAC"],
+    ["160229", "15º Grupo de Artilharia de Campanha Autopropulsado", "15º GAC AP"],
+    ["160230", "15ª Companhia de Engenharia de Combate Mecanizada", "15ª Cia E Cmb Mec"],
+    ["160232", "13º Batalhão de Infantaria Blindado", "13º BIB"],
+    ["160233", "Comando da 5ª Brigada de Cavalaria Blindada", "Cmdo 5ª Bda C Bld"],
+    ["160234", "5º Regimento de Carros de Combate", "5º RCC"],
+    ["160327", "5º Centro de Gestão de Custos e Finanças do Exército", "5º CGCFEx"],
+    ["160378", "16º Esquadrão de Cavalaria Mecanizado", "16º Esqd C Mec"],
+    ["160407", "1º Batalhão Ferroviário", "1º B Fv"],
+    ["160440", "23º Batalhão de Infantaria", "23º BI"],
+    ["160441", "28º Grupo de Artilharia de Campanha", "28º GAC"],
+    ["160443", "63º Batalhão de Infantaria", "63º BI"],
+    ["160444", "Comando da 14ª Brigada de Infantaria Motorizada", "Cmdo 14ª Bda Inf Mtz"],
+    ["160445", "Hospital de Guarnição de Foz do Iguaçu", "H Gu FI"],
+    ["160446", "62º Batalhão de Infantaria", "62º BI"],
+    ["160448", "5º Batalhão de Engenharia de Combate Blindado", "5º BE Cmb Bld"],
+    ["160450", "14º Regimento de Cavalaria Mecanizado", "14º R C Mec"],
+    ["160517", "14ª Companhia de Engenharia de Combate", "14ª Cia Eng Cmb"],
+    ["160524", "15º Batalhão Logístico", "15º B Log"],
+    ["160901", "11ª Bateria de Artilharia Antiaérea Autopropulsada", "11ª Bia AAAe Ap"],
+    ["160996", "33º Batalhão de Infantaria Mecanizado", "33º BI Mec"]
   ];
   
   // Escrever dados
-  abaUGs.getRange(1, 1, dadosUGs.length, 2).setValues(dadosUGs);
+  abaUGs.getRange(1, 1, dadosUGs.length, 3).setValues(dadosUGs);
   
   // Formatar cabeçalho
-  var cabecalhoRange = abaUGs.getRange(1, 1, 1, 2);
+  var cabecalhoRange = abaUGs.getRange(1, 1, 1, 3);
   cabecalhoRange.setBackground("#1a237e");
   cabecalhoRange.setFontColor("#ffffff");
   cabecalhoRange.setFontWeight("bold");
@@ -454,21 +430,23 @@ function criarAbaUGs() {
   cabecalhoRange.setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   
   // Formatar dados
-  var dadosRange = abaUGs.getRange(2, 1, dadosUGs.length - 1, 2);
+  var dadosRange = abaUGs.getRange(2, 1, dadosUGs.length - 1, 3);
   dadosRange.setBorder(true, true, true, true, true, true, "#000000", SpreadsheetApp.BorderStyle.SOLID);
   
   // Aplicar cores alternadas
   for (var i = 2; i <= dadosUGs.length; i++) {
     var corFundo = (i % 2 === 0) ? "#ffffff" : "#e8eaf6";
-    abaUGs.getRange(i, 1, 1, 2).setBackground(corFundo);
+    abaUGs.getRange(i, 1, 1, 3).setBackground(corFundo);
   }
   
   // Ajustar colunas
-  abaUGs.setColumnWidth(1, 100);
-  abaUGs.setColumnWidth(2, 450);
+  abaUGs.setColumnWidth(1, 80);   // UG
+  abaUGs.setColumnWidth(2, 400);  // Nome
+  abaUGs.setColumnWidth(3, 180);  // Abreviação
   
-  // Centralizar coluna UG
+  // Centralizar coluna UG e Abreviação
   abaUGs.getRange(2, 1, dadosUGs.length - 1, 1).setHorizontalAlignment("center");
+  abaUGs.getRange(2, 3, dadosUGs.length - 1, 1).setHorizontalAlignment("center");
   
   // Congelar cabeçalho
   abaUGs.setFrozenRows(1);
@@ -476,6 +454,10 @@ function criarAbaUGs() {
   SpreadsheetApp.getUi().alert(
     "✅ Aba 'UGs' criada com sucesso!\n\n" +
     "📋 Total de UGs cadastradas: " + (dadosUGs.length - 1) + "\n\n" +
+    "Colunas disponíveis:\n" +
+    "• UG - Código da unidade\n" +
+    "• Nome - Nome completo\n" +
+    "• Abreviação - Sigla para relatórios\n\n" +
     "Você pode adicionar, editar ou remover UGs diretamente na aba."
   );
 }
@@ -510,7 +492,7 @@ function formatarCabecalhoUG(aba, linha, numColunas) {
   var range = aba.getRange(linha, 1, 1, numColunas);
   range.setBackground("#37474f");
   range.setFontColor("#ffffff");
-  range.setFontSize(12);
+  range.setFontSize(11);
   range.setFontWeight("bold");
   range.setHorizontalAlignment("left");
   aba.setRowHeight(linha, 30);
